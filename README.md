@@ -9,7 +9,7 @@ Usage:
 
 `Cargo.toml`
 
-```
+```toml
 [dependencies]
 # Ensure ssh-agent is running
 # ssh-add your key
@@ -18,7 +18,7 @@ eggricesoy = { git = "ssh://git@github.com/eggricesoy/eggricesoy-rs.git", tag = 
 
 `main.rs`
 
-```
+```rs
 use eggricesoy;
 use eggricesoy::clap::Arg;
 use eggricesoy::log::{debug, info, warn};
