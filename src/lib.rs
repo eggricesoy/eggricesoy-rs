@@ -1,7 +1,7 @@
 pub extern crate clap;
 pub extern crate log;
 
-use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, ArgMatches};
+use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{debug, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::append::rolling_file::policy::compound::roll::delete::DeleteRoller;
@@ -12,11 +12,22 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-pub fn app<'a, 'b>() -> App<'a, 'b> {
-  App::new(crate_name!())
+#[macro_export(app)]
+macro_rules! app {
+  () => {
+    eggricesoy::generate_app(
+      eggricesoy::clap::crate_name!(),
+      eggricesoy::clap::crate_description!(),
+      eggricesoy::clap::crate_version!(),
+    )
+  };
+}
+
+pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b str) -> App<'a, 'b> {
+  App::new(name)
     .author("eggricesoy <eggrice.soy>")
-    .about(crate_description!())
-    .version(crate_version!())
+    .about(description)
+    .version(version)
     .arg(
       Arg::with_name("log4rs-config")
         .help("log4rs configuration file. If read successfully, this overrides all configurations")

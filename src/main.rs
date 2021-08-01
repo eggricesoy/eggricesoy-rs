@@ -2,7 +2,7 @@ extern crate eggricesoy;
 use log::{debug, error, info, trace, warn};
 
 fn main() {
-  let app = eggricesoy::app();
+  let app = eggricesoy::app!();
   eggricesoy::init_app(app);
   for _ in 1..1000 {
     trace!("This is trace");
