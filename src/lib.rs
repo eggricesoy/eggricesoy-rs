@@ -1,8 +1,7 @@
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, ArgMatches};
 use log::{debug, warn, LevelFilter};
 use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Config};
-use simple_logger::SimpleLogger;
+use log4rs::config::{Appender, Config, Deserializers, Root};
 
 pub fn app<'a, 'b>() -> App<'a, 'b> {
   App::new(crate_name!())
@@ -21,36 +20,44 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
     .setting(AppSettings::VersionlessSubcommands)
 }
 
-pub fn init_logger(matches: &ArgMatches) {
-  let mut use_simple_logger = !matches.is_present("log4rs-config");
-
+fn default_logger_config() -> Config {
   let stdout = ConsoleAppender::builder().build();
-  let config = Config::builder().appender(Appender::builder().build("stdout", Box::new(stdout)));
 
-  // Attempt to initialize log4rs
-  if !use_simple_logger {
-    let log4rs_config = matches
-      .value_of("log4rs-config")
-      .expect("Failed to get log4rs-config.");
-    debug!("Initializing log4rs config at {}", log4rs_config);
-    match log4rs::init_file(log4rs_config, Default::default()) {
-      Ok(_) => {
-        debug!("log4rs initialized.");
+  Config::builder()
+    .appender(Appender::builder().build("stdout", Box::new(stdout)))
+    .build(Root::builder().appender("stdout").build(LevelFilter::Debug))
+    .unwrap()
+}
+
+pub fn init_logger(matches: &ArgMatches) {
+  let parse_msg;
+  let log4rs_config;
+  let deserializer = Deserializers::new();
+
+  match matches.value_of("log4rs-config") {
+    Some(config_path) => match log4rs::config::load_config_file(config_path, deserializer) {
+      Ok(config) => {
+        log4rs_config = config;
+        parse_msg = format!("Initialized log4rs config {}", config_path);
       }
       Err(e) => {
-        use_simple_logger = true;
-        SimpleLogger::new().init().unwrap();
-        warn!("Failed to initialize log4rs: {}", e);
+        log4rs_config = default_logger_config();
+        parse_msg = format!(
+          "Failed to initialize log4rs config {}, printing to stdout: {}",
+          config_path, e
+        );
       }
+    },
+    None => {
+      log4rs_config = default_logger_config();
+      parse_msg = String::from("--log4rs-config not provided.")
     }
-  } else {
-    SimpleLogger::new().init().unwrap();
   }
 
-  if use_simple_logger {
-    log::set_max_level(LevelFilter::Debug);
-    warn!("Using SimpleLogger, this only outputs to stdout/stderr.");
-  }
+  let encoder = log4rs::encode::pattern::PatternEncoder::new("[] {d} {l} {t} - {m}{n}");
+  log4rs_config.borrow_mut();
+  log4rs::init_config(log4rs_config).unwrap();
+  debug!("{}", parse_msg);
 }
 
 pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> ArgMatches<'a> {
