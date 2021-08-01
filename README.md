@@ -24,7 +24,7 @@ use eggricesoy::clap::Arg;
 use eggricesoy::log::{debug, info, warn};
 
 fn main() {
-  let app = eggricesoy::app().arg(Arg::with_name("name").long("name").takes_value(true));
+  let app = eggricesoy::app!().arg(Arg::with_name("name").long("name").takes_value(true));
   let matches = eggricesoy::init_app(app);
   debug!("This is a demo application!");
 }
