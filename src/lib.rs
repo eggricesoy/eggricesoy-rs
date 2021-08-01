@@ -1,3 +1,6 @@
+pub extern crate clap;
+pub extern crate log;
+
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, ArgMatches};
 use log::{debug, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};

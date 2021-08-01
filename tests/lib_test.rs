@@ -1,6 +1,5 @@
 #[cfg(test)]
 extern crate eggricesoy;
-use log::debug;
 
 #[test]
 fn create_app() {
