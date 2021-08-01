@@ -1,7 +1,10 @@
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, ArgMatches};
 use log::{debug, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
-use log4rs::append::file::FileAppender;
+use log4rs::append::rolling_file::policy::compound::roll::delete::DeleteRoller;
+use log4rs::append::rolling_file::policy::compound::trigger::size::SizeTrigger;
+use log4rs::append::rolling_file::policy::compound::CompoundPolicy;
+use log4rs::append::rolling_file::RollingFileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
@@ -59,6 +62,15 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
         .required(true)
         .default_value("info"),
     )
+    .arg(
+      Arg::with_name("log-file-size")
+        .help("Maximum log file size in bytes, any invalid values will default to 1MB")
+        .long("log-file-size")
+        .short("s")
+        .takes_value(true)
+        .required(true)
+        .default_value("1000000"),
+    )
     .setting(AppSettings::StrictUtf8)
     .setting(AppSettings::ColoredHelp)
     .setting(AppSettings::VersionlessSubcommands)
@@ -98,9 +110,19 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
 
   match matches.value_of("log-file") {
     Some(path) => {
-      match FileAppender::builder()
+      let file_size: u64 = matches
+        .value_of("log-file-size")
+        .unwrap()
+        .parse()
+        .unwrap_or(1000000);
+      let policy = CompoundPolicy::new(
+        Box::new(SizeTrigger::new(file_size)),
+        Box::new(DeleteRoller::new()),
+      );
+
+      match RollingFileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(encoder_string)))
-        .build(path)
+        .build(path, Box::new(policy))
       {
         Ok(file) => {
           config_builder = config_builder.appender(
