@@ -7,21 +7,18 @@ appenders:
       pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
     filters:
     - kind: threshold
-      level: error
+      level: debug
   file:
     kind: file
     path: error.log
     encoder:
       pattern: "{d} [{t}] {l} {M}:{m}{n}"
+    filters:
+    - kind: threshold
+      level: error
 
 root:
   level: warn
   appenders:
   - console
-
-loggers:
-  test::a:
-    level: info
-    appenders:
-    - file
-    additive: true
+  - file
