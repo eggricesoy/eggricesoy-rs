@@ -13,7 +13,7 @@ Usage:
 [dependencies]
 # Ensure ssh-agent is running
 # ssh-add your key
-eggricesoy = { git = "ssh://git@github.com/eggricesoy/eggricesoy-rs.git", tag = "1.0.0" }
+eggricesoy = { git = "ssh://git@github.com/eggricesoy/eggricesoy-rs.git", tag = "1.1.0" }
 ```
 
 `main.rs`

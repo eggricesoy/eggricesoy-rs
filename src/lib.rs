@@ -5,10 +5,12 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{debug, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::append::rolling_file::policy::compound::roll::delete::DeleteRoller;
+use log4rs::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
 use log4rs::append::rolling_file::policy::compound::trigger::size::SizeTrigger;
 use log4rs::append::rolling_file::policy::compound::CompoundPolicy;
 use log4rs::append::rolling_file::RollingFileAppender;
 use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::json::JsonEncoder;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
@@ -49,6 +51,14 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .takes_value(true),
     )
     .arg(
+      Arg::with_name("log-json")
+        .help("Log json file path. Logs will be exported in files <binary_name>.<count>.log")
+        .long("log-json")
+        .short("j")
+        .default_value("/tmp/log")
+        .takes_value(true),
+    )
+    .arg(
       Arg::with_name("log-level")
         .help("Minimum log level for both stderr and file")
         .possible_values(&["trace", "debug", "info", "warn", "error"])
@@ -77,13 +87,29 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .default_value("info"),
     )
     .arg(
+      Arg::with_name("log-level-json")
+        .help("Minimum log level for json")
+        .possible_values(&["trace", "debug", "info", "warn", "error"])
+        .long("log-level-json")
+        .takes_value(true)
+        .required(true)
+        .default_value("info"),
+    )
+    .arg(
       Arg::with_name("log-file-size")
         .help("Maximum log file size in bytes, any invalid values will default to 1MB")
         .long("log-file-size")
-        .short("s")
         .takes_value(true)
         .required(true)
         .default_value("1000000"),
+    )
+    .arg(
+      Arg::with_name("log-json-count")
+        .help("Maximum json log file count, any invalid values will default to 10")
+        .long("log-file-count")
+        .takes_value(true)
+        .required(true)
+        .default_value("10"),
     )
     .setting(AppSettings::StrictUtf8)
     .setting(AppSettings::ColoredHelp)
@@ -120,6 +146,54 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
         .build("stderr", Box::new(stderr)),
     );
     root_builder = root_builder.appender("stderr");
+  }
+
+  match matches.value_of("log-json") {
+    Some(path) => {
+      let base_path = std::path::Path::new(path);
+      let first_file = base_path.join(format!("{}.0.jsonlog", clap::crate_name!()));
+      let pattern = format!(
+        "{}/{}.{{}}.jsonlog",
+        base_path.to_string_lossy(),
+        clap::crate_name!()
+      );
+      let file_size: u64 = matches
+        .value_of("log-file-size")
+        .unwrap()
+        .parse()
+        .unwrap_or(1000000);
+      let file_count: u32 = matches
+        .value_of("log-json-count")
+        .unwrap()
+        .parse()
+        .unwrap_or(10);
+      let policy = CompoundPolicy::new(
+        Box::new(SizeTrigger::new(file_size)),
+        Box::new(
+          FixedWindowRoller::builder()
+            .build(&pattern, file_count)
+            .unwrap(),
+        ),
+      );
+
+      match RollingFileAppender::builder()
+        .encoder(Box::new(JsonEncoder::new()))
+        .build(&first_file, Box::new(policy))
+      {
+        Ok(file) => {
+          config_builder = config_builder.appender(
+            Appender::builder()
+              .filter(Box::new(ThresholdFilter::new(
+                str_to_levelfilter(matches.value_of("log-level-json").unwrap()).unwrap(),
+              )))
+              .build("json", Box::new(file)),
+          );
+          root_builder = root_builder.appender("json");
+        }
+        Err(e) => error = format!("Failed to create logger for {}", e),
+      }
+    }
+    None => error = String::from("Not logging json file!"),
   }
 
   match matches.value_of("log-file") {
