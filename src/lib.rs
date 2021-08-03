@@ -10,6 +10,8 @@ use log4rs::config::Config;
 
 #[macro_export(app)]
 macro_rules! app {
+  // Crate information is provided in macro so that the calling package's
+  // information is used to populate application information.
   () => {
     eggricesoy::generate_app(
       eggricesoy::clap::crate_name!(),
