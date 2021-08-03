@@ -48,14 +48,15 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Log file path")
         .long("log-file")
         .short("f")
+        .default_value(Box::leak(Box::new(format!("/tmp/log/{}.log", name))))
         .takes_value(true),
     )
     .arg(
       Arg::with_name("log-json")
-        .help("Log json file path. Logs will be exported in files <binary_name>.<count>.log")
+        .help("Log json file path. Must end with .0.jsonlog, '0' will be incremented with log file size increase.")
         .long("log-json")
         .short("j")
-        .default_value("/tmp/log")
+        .default_value(Box::leak(Box::new(format!("/tmp/log/{}.0.jsonlog", name))))
         .takes_value(true),
     )
     .arg(
@@ -127,11 +128,11 @@ fn str_to_levelfilter(string: &str) -> Result<LevelFilter, String> {
   }
 }
 
-fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
+fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
   let mut config_builder = Config::builder();
   let mut root_builder = Root::builder();
   let encoder_string = "{d} {h({l})} [{T}/{t}] {m}{n}";
-  let mut error = String::new();
+  let mut msgs: Vec<String> = Vec::new();
 
   if !matches.is_present("no-stderr") {
     let stderr = ConsoleAppender::builder()
@@ -149,14 +150,8 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
   }
 
   match matches.value_of("log-json") {
-    Some(path) => {
-      let base_path = std::path::Path::new(path);
-      let first_file = base_path.join(format!("{}.0.jsonlog", clap::crate_name!()));
-      let pattern = format!(
-        "{}/{}.{{}}.jsonlog",
-        base_path.to_string_lossy(),
-        clap::crate_name!()
-      );
+    Some(first_file) => {
+      let pattern = first_file.replace(".0.jsonlog", ".{}.jsonlog");
       let file_size: u64 = matches
         .value_of("log-file-size")
         .unwrap()
@@ -190,10 +185,10 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
           );
           root_builder = root_builder.appender("json");
         }
-        Err(e) => error = format!("Failed to create logger for {}", e),
+        Err(e) => msgs.push(format!("Failed to create logger for {}", e)),
       }
     }
-    None => error = String::from("Not logging json file!"),
+    None => msgs.push(String::from("Not logging json file!")),
   }
 
   match matches.value_of("log-file") {
@@ -222,11 +217,11 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
           );
           root_builder = root_builder.appender("file");
         }
-        Err(e) => error = format!("Failed to create logger for {}", e),
+        Err(e) => msgs.push(format!("Failed to create logger for {}", e)),
       }
     }
 
-    None => error = String::from("Not logging to file!"),
+    None => msgs.push(String::from("Not logging to file!")),
   }
 
   (
@@ -235,7 +230,7 @@ fn default_logger_config(matches: &ArgMatches) -> (Config, String) {
         str_to_levelfilter(matches.value_of("log-level").unwrap()).unwrap_or(LevelFilter::Debug),
       ))
       .unwrap(),
-    error,
+    msgs,
   )
 }
 
@@ -262,9 +257,9 @@ pub fn init_logger(matches: &ArgMatches) {
   }
 
   if log4rs_config.is_none() {
-    let config_and_err = default_logger_config(matches);
+    let mut config_and_err = default_logger_config(matches);
     log4rs_config = Some(config_and_err.0);
-    parse_msg.push(config_and_err.1);
+    parse_msg.append(&mut config_and_err.1);
   }
 
   log4rs::init_config(log4rs_config.unwrap()).unwrap();
