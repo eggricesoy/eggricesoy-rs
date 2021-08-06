@@ -13,7 +13,7 @@ Usage:
 [dependencies]
 # Ensure ssh-agent is running
 # ssh-add your key
-eggricesoy = { git = "ssh://git@github.com/eggricesoy/eggricesoy-rs.git", tag = "1.1.0" }
+eggricesoy = { git = "ssh://git@github.com/eggricesoy/eggricesoy-rs.git", tag = "1.2.0" }
 ```
 
 `main.rs`
@@ -25,7 +25,7 @@ use eggricesoy::log::{debug, info, warn};
 
 fn main() {
   let app = eggricesoy::app!().arg(Arg::with_name("name").long("name").takes_value(true));
-  let matches = eggricesoy::init_app(app);
+  let matches = eggricesoy::init_app(app).matches;
   debug!("This is a demo application!");
 }
 ```
