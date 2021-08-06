@@ -10,9 +10,10 @@ fn handle_client(mut stream: TcpStream) {
   let mut buf = [0u8; 4096];
   match stream.read(&mut buf) {
     Ok(_) => {
-      let req_str = String::from_utf8_lossy(&buf);
-      debug!("{}", req_str);
-      let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<html><body>Hello world</body></html>\r\n";
+      // Not using this right now
+      // let req_str = String::from_utf8_lossy(&buf);
+      // debug!("{}", req_str);
+      let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<html><body>ok</body></html>\r\n";
       match stream.write(response) {
         Ok(_) => debug!("Response sent"),
         Err(e) => error!("Failed sending response: {}", e),
