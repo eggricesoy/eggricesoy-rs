@@ -1,6 +1,6 @@
 [package]
 name = "eggricesoy"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2018"
 authors = ["Nocoto Day <notcoding.today>"]
 description = "Helper library for eggricesoy Rust binaries"
@@ -14,3 +14,4 @@ homepage = "eggrice.soy"
 clap = "2.33.3"
 log4rs = "1.0.0"
 log = "0.4.14"
+threadpool = "1.8.1"

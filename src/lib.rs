@@ -1,12 +1,15 @@
 pub extern crate clap;
 pub extern crate log;
 
+#[path = "lib/http.rs"]
+mod http;
 #[path = "lib/logger.rs"]
 mod logger;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use log::debug;
+use log::{debug, error};
 use log4rs::config::Config;
+use std::thread::JoinHandle;
 
 #[macro_export(app)]
 macro_rules! app {
@@ -108,6 +111,30 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .required(true)
         .default_value("10"),
     )
+    .arg(
+      Arg::with_name("http-ip")
+        .help("IP to bind to for http health and basic info display")
+        .long("http-ip")
+        .takes_value(true)
+        .required(true)
+        .default_value("0.0.0.0"),
+    )
+    .arg(
+      Arg::with_name("http-port")
+        .help("Port to bind to for http health and basic info display")
+        .long("http-port")
+        .takes_value(true)
+        .required(true)
+        .default_value("3000"),
+    )
+    .arg(
+      Arg::with_name("http-pool-size")
+        .help("Number of threads to handle status HTTP requests.")
+        .long("http-pool-size")
+        .takes_value(true)
+        .required(true)
+        .default_value("3"),
+    )
     .setting(AppSettings::StrictUtf8)
     .setting(AppSettings::ColoredHelp)
     .setting(AppSettings::VersionlessSubcommands)
@@ -149,8 +176,14 @@ pub fn init_logger(matches: &ArgMatches) {
   }
 }
 
-pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> ArgMatches<'a> {
+pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> (ArgMatches<'a>, Option<JoinHandle<()>>) {
   let matches: ArgMatches<'a> = app.get_matches();
   init_logger(&matches);
-  matches
+  match http::create_http_server(&matches) {
+    Ok(handle) => return (matches, Some(handle)),
+    Err(e) => {
+      error!("{}", e);
+      return (matches, None);
+    }
+  }
 }
