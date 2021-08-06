@@ -23,6 +23,11 @@ macro_rules! app {
   };
 }
 
+pub struct EggApp<'a> {
+  pub matches: ArgMatches<'a>,
+  pub http_handle: Option<JoinHandle<()>>,
+}
+
 pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b str) -> App<'a, 'b> {
   App::new(name)
     .author("eggricesoy <eggrice.soy>")
@@ -33,12 +38,14 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("log4rs configuration file. If read successfully, this overrides all configurations")
         .long("log4rs-config")
         .short("c")
+        .hidden_short_help(true)
         .takes_value(true),
     )
     .arg(
       Arg::with_name("no-stderr")
         .help("If set, do not print log to stderr")
         .long("no-stderr")
+        .hidden_short_help(true)
         .short("n"),
     )
     .arg(
@@ -47,6 +54,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-file")
         .short("f")
         .default_value(Box::leak(Box::new(format!("/tmp/log/{}.log", name))))
+        .hidden_short_help(true)
         .takes_value(true),
     )
     .arg(
@@ -55,6 +63,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-json")
         .short("j")
         .default_value(Box::leak(Box::new(format!("/tmp/log/{}.0.jsonlog", name))))
+        .hidden_short_help(true)
         .takes_value(true),
     )
     .arg(
@@ -65,6 +74,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .short("l")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("debug"),
     )
     .arg(
@@ -72,6 +82,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Minimum log level for stderr")
         .possible_values(&["trace", "debug", "info", "warn", "error"])
         .long("log-level-stderr")
+        .short("s")
         .takes_value(true)
         .required(true)
         .default_value("debug"),
@@ -83,6 +94,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-level-file")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("info"),
     )
     .arg(
@@ -92,6 +104,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-level-json")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("info"),
     )
     .arg(
@@ -100,6 +113,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-file-size")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("1000000"),
     )
     .arg(
@@ -108,6 +122,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("log-file-count")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("10"),
     )
     .arg(
@@ -116,6 +131,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("http-ip")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("0.0.0.0"),
     )
     .arg(
@@ -124,6 +140,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("http-port")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("3000"),
     )
     .arg(
@@ -132,6 +149,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .long("http-pool-size")
         .takes_value(true)
         .required(true)
+        .hidden_short_help(true)
         .default_value("3"),
     )
     .setting(AppSettings::StrictUtf8)
@@ -139,16 +157,24 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
     .setting(AppSettings::VersionlessSubcommands)
 }
 
-pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> (ArgMatches<'a>, Option<JoinHandle<()>>) {
+pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> EggApp<'a> {
   debug!("Initializing app");
 
   let matches: ArgMatches<'a> = app.get_matches();
   logger::init_logger(&matches);
   match http::create_http_server(&matches) {
-    Ok(handle) => return (matches, Some(handle)),
+    Ok(handle) => {
+      return EggApp {
+        matches: matches,
+        http_handle: Some(handle),
+      }
+    }
     Err(e) => {
-      error!("{}", e);
-      return (matches, None);
+      error!("Failed to create status http server: {}", e);
+      return EggApp {
+        matches: matches,
+        http_handle: None,
+      };
     }
   }
 }

@@ -3,7 +3,7 @@ use log::{debug, error, info, trace, warn};
 
 fn main() {
   let app = eggricesoy::app!();
-  let option_handle = eggricesoy::init_app(app).1;
+  let option_handle = eggricesoy::init_app(app).http_handle;
   // for _ in 1..1000 {
   trace!("This is trace");
   debug!("This is debug");
