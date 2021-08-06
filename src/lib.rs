@@ -8,7 +8,6 @@ mod logger;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{debug, error};
-use log4rs::config::Config;
 use std::thread::JoinHandle;
 
 #[macro_export(app)]
@@ -140,45 +139,11 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
     .setting(AppSettings::VersionlessSubcommands)
 }
 
-pub fn init_logger(matches: &ArgMatches) {
-  let mut parse_msg: Vec<String> = Vec::new();
-  let mut log4rs_config: Option<Config> = None;
-
-  match matches.value_of("log4rs-config") {
-    Some(config_path) => match log4rs::config::load_config_file(config_path, Default::default()) {
-      Ok(config) => {
-        log4rs_config = Some(config);
-        parse_msg.push(format!("Initialized log4rs config {}", config_path));
-      }
-      Err(e) => {
-        parse_msg.push(format!(
-          "Failed to initialize log4rs config {}, {}",
-          config_path, e
-        ));
-      }
-    },
-    None => {
-      parse_msg.push(String::from("log4rs config not provided"));
-    }
-  }
-
-  if log4rs_config.is_none() {
-    let mut config_and_err = logger::default_logger_config(matches);
-    log4rs_config = Some(config_and_err.0);
-    parse_msg.append(&mut config_and_err.1);
-  }
-
-  log4rs::init_config(log4rs_config.unwrap()).unwrap();
-  for msg in parse_msg {
-    if msg.len() > 0 {
-      debug!("{}", msg);
-    }
-  }
-}
-
 pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> (ArgMatches<'a>, Option<JoinHandle<()>>) {
+  debug!("Initializing app");
+
   let matches: ArgMatches<'a> = app.get_matches();
-  init_logger(&matches);
+  logger::init_logger(&matches);
   match http::create_http_server(&matches) {
     Ok(handle) => return (matches, Some(handle)),
     Err(e) => {

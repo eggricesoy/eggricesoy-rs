@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::append::rolling_file::policy::compound::roll::delete::DeleteRoller;
 use log4rs::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
@@ -126,4 +126,40 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
       .unwrap(),
     msgs,
   )
+}
+
+pub fn init_logger(matches: &ArgMatches) {
+  let mut parse_msg: Vec<String> = Vec::new();
+  let mut log4rs_config: Option<Config> = None;
+
+  match matches.value_of("log4rs-config") {
+    Some(config_path) => match log4rs::config::load_config_file(config_path, Default::default()) {
+      Ok(config) => {
+        log4rs_config = Some(config);
+        parse_msg.push(format!("Initialized log4rs config {}", config_path));
+      }
+      Err(e) => {
+        parse_msg.push(format!(
+          "Failed to initialize log4rs config {}, {}",
+          config_path, e
+        ));
+      }
+    },
+    None => {
+      parse_msg.push(String::from("log4rs config not provided"));
+    }
+  }
+
+  if log4rs_config.is_none() {
+    let mut config_and_err = default_logger_config(matches);
+    log4rs_config = Some(config_and_err.0);
+    parse_msg.append(&mut config_and_err.1);
+  }
+
+  log4rs::init_config(log4rs_config.unwrap()).unwrap();
+  for msg in parse_msg {
+    if msg.len() > 0 {
+      debug!("{}", msg);
+    }
+  }
 }
