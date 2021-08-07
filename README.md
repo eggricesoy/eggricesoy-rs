@@ -8,8 +8,8 @@ Feature list:
 - [x] Generate `clap::App` with appropriate configuration.
 - [x] Setup logger in production-ready style.
 - [x] Turn up HTTP server for health checking.
-- [] Display binary information (flags, etc) in HTTP server.
-- [] Explicitly route `/health` for health check.
+- [ ] Display binary information (flags, etc) in HTTP server.
+- [ ] Explicitly route `/health` for health check.
 
 Usage:
 
