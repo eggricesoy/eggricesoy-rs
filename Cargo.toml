@@ -1,6 +1,6 @@
 [package]
 name = "eggricesoy"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2018"
 authors = ["Nocoto Day <notcoding.today>"]
 description = "Helper library for eggricesoy Rust binaries"

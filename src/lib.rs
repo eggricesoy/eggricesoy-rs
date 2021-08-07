@@ -23,6 +23,8 @@ macro_rules! app {
   };
 }
 
+pub type AnyError = Box<dyn std::error::Error>;
+
 pub struct EggApp<'a> {
   pub matches: ArgMatches<'a>,
   pub http_handle: Option<JoinHandle<()>>,
