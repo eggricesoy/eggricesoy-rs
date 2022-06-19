@@ -14,7 +14,7 @@ fn main() {
   match option_handle {
     Some(handle) => {
       info!("Joining handle..");
-      handle.join();
+      handle.join().expect("Failed to join handle");
     }
     None => {
       info!("No handle to join");

@@ -165,18 +165,16 @@ pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> EggApp<'a> {
   let matches: ArgMatches<'a> = app.get_matches();
   logger::init_logger(&matches);
   match http::create_http_server(&matches) {
-    Ok(handle) => {
-      return EggApp {
-        matches: matches,
-        http_handle: Some(handle),
-      }
-    }
+    Ok(handle) => EggApp {
+      matches,
+      http_handle: Some(handle),
+    },
     Err(e) => {
       error!("Failed to create status http server: {}", e);
-      return EggApp {
-        matches: matches,
+      EggApp {
+        matches,
         http_handle: None,
-      };
+      }
     }
   }
 }
