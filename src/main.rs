@@ -12,9 +12,8 @@ fn main() {
   error!("This is error");
   // }
   match option_handle {
-    Some(handle) => {
-      info!("Joining handle..");
-      handle.join().expect("Failed to join handle");
+    Some(_) => {
+      info!("Exiting..");
     }
     None => {
       info!("No handle to join");

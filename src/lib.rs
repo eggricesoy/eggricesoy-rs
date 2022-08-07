@@ -16,21 +16,21 @@ macro_rules! app {
   // information is used to populate application information.
   () => {
     eggricesoy::generate_app(
-      eggricesoy::clap::crate_name!(),
-      eggricesoy::clap::crate_description!(),
-      eggricesoy::clap::crate_version!(),
+      env!("CARGO_PKG_NAME"),
+      env!("CARGO_PKG_DESCRIPTION"),
+      env!("CARGO_PKG_VERSION"),
     )
   };
 }
 
 pub type AnyError = Box<dyn std::error::Error>;
 
-pub struct EggApp<'a> {
-  pub matches: ArgMatches<'a>,
+pub struct EggApp {
+  pub matches: ArgMatches,
   pub http_handle: Option<JoinHandle<()>>,
 }
 
-pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b str) -> App<'a, 'b> {
+pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -> App<'a> {
   App::new(name)
     .author("eggricesoy <eggrice.soy>")
     .about(description)
@@ -39,7 +39,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
       Arg::with_name("log4rs-config")
         .help("log4rs configuration file. If read successfully, this overrides all configurations")
         .long("log4rs-config")
-        .short("c")
+        .short('c')
         .hidden_short_help(true)
         .takes_value(true),
     )
@@ -48,13 +48,13 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("If set, do not print log to stderr")
         .long("no-stderr")
         .hidden_short_help(true)
-        .short("n"),
+        .short('n'),
     )
     .arg(
       Arg::with_name("log-file")
         .help("Log file path")
         .long("log-file")
-        .short("f")
+        .short('f')
         .default_value(Box::leak(Box::new(format!("/tmp/log/{}.log", name))))
         .hidden_short_help(true)
         .takes_value(true),
@@ -63,7 +63,7 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
       Arg::with_name("log-json")
         .help("Log json file path. Must end with .0.jsonlog, '0' will be incremented with log file size increase.")
         .long("log-json")
-        .short("j")
+        .short('j')
         .default_value(Box::leak(Box::new(format!("/tmp/log/{}.0.jsonlog", name))))
         .hidden_short_help(true)
         .takes_value(true),
@@ -73,9 +73,8 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Minimum log level for both stderr and file")
         .possible_values(&["trace", "debug", "info", "warn", "error"])
         .long("log-level")
-        .short("l")
+        .short('l')
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("debug"),
     )
@@ -84,9 +83,8 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Minimum log level for stderr")
         .possible_values(&["trace", "debug", "info", "warn", "error"])
         .long("log-level-stderr")
-        .short("s")
+        .short('s')
         .takes_value(true)
-        .required(true)
         .default_value("debug"),
     )
     .arg(
@@ -95,7 +93,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .possible_values(&["trace", "debug", "info", "warn", "error"])
         .long("log-level-file")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("info"),
     )
@@ -105,7 +102,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .possible_values(&["trace", "debug", "info", "warn", "error"])
         .long("log-level-json")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("info"),
     )
@@ -114,7 +110,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Maximum log file size in bytes, any invalid values will default to 1MB")
         .long("log-file-size")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("1000000"),
     )
@@ -123,7 +118,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Maximum json log file count, any invalid values will default to 10")
         .long("log-file-count")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("10"),
     )
@@ -132,7 +126,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("IP to bind to for http health and basic info display")
         .long("http-ip")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("0.0.0.0"),
     )
@@ -141,7 +134,6 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Port to bind to for http health and basic info display")
         .long("http-port")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("3000"),
     )
@@ -150,19 +142,17 @@ pub fn generate_app<'a, 'b>(name: &'b str, description: &'b str, version: &'b st
         .help("Number of threads to handle status HTTP requests.")
         .long("http-pool-size")
         .takes_value(true)
-        .required(true)
         .hidden_short_help(true)
         .default_value("3"),
     )
     .setting(AppSettings::StrictUtf8)
     .setting(AppSettings::ColoredHelp)
-    .setting(AppSettings::VersionlessSubcommands)
 }
 
-pub fn init_app<'a, 'b>(app: App<'a, 'b>) -> EggApp<'a> {
+pub fn init_app(app: App) -> EggApp {
   debug!("Initializing app");
 
-  let matches: ArgMatches<'a> = app.get_matches();
+  let matches: ArgMatches = app.get_matches();
   logger::init_logger(&matches);
   match http::create_http_server(&matches) {
     Ok(handle) => EggApp {

@@ -158,7 +158,7 @@ pub fn init_logger(matches: &ArgMatches) {
 
   log4rs::init_config(log4rs_config.unwrap()).unwrap();
   for msg in parse_msg {
-    if msg.len() > 0 {
+    if !msg.is_empty() {
       debug!("{}", msg);
     }
   }

@@ -32,7 +32,7 @@ pub fn create_http_server(matches: &ArgMatches) -> Result<thread::JoinHandle<()>
     .parse()
     .unwrap_or(3);
 
-  let bind_addr = String::from(format!("{}:{}", bind_ip, bind_port));
+  let bind_addr = format!("{}:{}", bind_ip, bind_port);
   debug!("Creating TCP listener at {}", bind_addr);
 
   let listener = TcpListener::bind(bind_addr)?;
@@ -62,5 +62,5 @@ pub fn create_http_server(matches: &ArgMatches) -> Result<thread::JoinHandle<()>
     }
   };
 
-  Ok(builder.spawn(lambda_handler)?)
+  builder.spawn(lambda_handler)
 }
