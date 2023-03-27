@@ -10,7 +10,7 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{debug, error};
 use std::thread::JoinHandle;
 
-#[macro_export(app)]
+#[macro_export]
 macro_rules! app {
   // Crate information is provided in macro so that the calling package's
   // information is used to populate application information.
@@ -71,7 +71,7 @@ pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -
     .arg(
       Arg::with_name("log-level")
         .help("Minimum log level for both stderr and file")
-        .possible_values(&["trace", "debug", "info", "warn", "error"])
+        .possible_values(["trace", "debug", "info", "warn", "error"])
         .long("log-level")
         .short('l')
         .takes_value(true)
@@ -81,7 +81,7 @@ pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -
     .arg(
       Arg::with_name("log-level-stderr")
         .help("Minimum log level for stderr")
-        .possible_values(&["trace", "debug", "info", "warn", "error"])
+        .possible_values(["trace", "debug", "info", "warn", "error"])
         .long("log-level-stderr")
         .short('s')
         .takes_value(true)
@@ -90,7 +90,7 @@ pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -
     .arg(
       Arg::with_name("log-level-file")
         .help("Minimum log level for file")
-        .possible_values(&["trace", "debug", "info", "warn", "error"])
+        .possible_values(["trace", "debug", "info", "warn", "error"])
         .long("log-level-file")
         .takes_value(true)
         .hidden_short_help(true)
@@ -99,7 +99,7 @@ pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -
     .arg(
       Arg::with_name("log-level-json")
         .help("Minimum log level for json")
-        .possible_values(&["trace", "debug", "info", "warn", "error"])
+        .possible_values(["trace", "debug", "info", "warn", "error"])
         .long("log-level-json")
         .takes_value(true)
         .hidden_short_help(true)

@@ -67,7 +67,7 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
 
       match RollingFileAppender::builder()
         .encoder(Box::new(JsonEncoder::new()))
-        .build(&first_file, Box::new(policy))
+        .build(first_file, Box::new(policy))
       {
         Ok(file) => {
           config_builder = config_builder.appender(
