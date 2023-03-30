@@ -6,6 +6,8 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use threadpool::Builder;
 
+use crate::AnyError;
+
 fn handle_client(mut stream: TcpStream) {
   let mut buf = [0u8; 4096];
   match stream.read(&mut buf) {
@@ -23,14 +25,16 @@ fn handle_client(mut stream: TcpStream) {
   }
 }
 
-pub fn create_http_server(matches: &ArgMatches) -> Result<thread::JoinHandle<()>, std::io::Error> {
-  let bind_ip = matches.value_of("http-ip").unwrap_or("0.0.0.0");
-  let bind_port = matches.value_of("http-port").unwrap_or("3000");
-  let pool_size: usize = matches
-    .value_of("http-pool-size")
-    .unwrap_or("3")
-    .parse()
-    .unwrap_or(3);
+pub fn create_http_server(matches: &ArgMatches) -> Result<thread::JoinHandle<()>, AnyError> {
+  let bind_ip = matches
+    .get_one::<String>("http-ip")
+    .ok_or("Default value for --http-ip not set")?;
+  let bind_port = matches
+    .get_one::<String>("http-port")
+    .ok_or("Default value for --http-ip not set")?;
+  let pool_size: usize = *matches
+    .get_one::<usize>("http-pool-size")
+    .ok_or("Failed to parse --http-pool-size")?;
 
   let bind_addr = format!("{}:{}", bind_ip, bind_port);
   debug!("Creating TCP listener at {}", bind_addr);
@@ -62,5 +66,5 @@ pub fn create_http_server(matches: &ArgMatches) -> Result<thread::JoinHandle<()>
     }
   };
 
-  builder.spawn(lambda_handler)
+  Ok(builder.spawn(lambda_handler)?)
 }

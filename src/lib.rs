@@ -6,7 +6,10 @@ mod http;
 #[path = "lib/logger.rs"]
 mod logger;
 
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{
+  builder::{Arg, Command},
+  value_parser, ArgAction, ArgMatches,
+};
 use log::{debug, error};
 use std::thread::JoinHandle;
 
@@ -30,126 +33,123 @@ pub struct EggApp {
   pub http_handle: Option<JoinHandle<()>>,
 }
 
-pub fn generate_app<'a>(name: &'a str, description: &'a str, version: &'a str) -> App<'a> {
-  App::new(name)
+pub fn generate_app(
+  name: &'static str,
+  description: &'static str,
+  version: &'static str,
+) -> Command {
+  let default_log_file: &'static str = Box::leak(format!("/tmp/log/{}.log", name).into_boxed_str());
+  let default_log_json_file: &'static str =
+    Box::leak(format!("/tmp/log/{}.0.jsonlog", name).into_boxed_str());
+  Command::new(name)
     .author("eggricesoy <eggrice.soy>")
     .about(description)
     .version(version)
-    .arg(
-      Arg::with_name("log4rs-config")
+    .args(&[
+      Arg::new("log4rs-config")
         .help("log4rs configuration file. If read successfully, this overrides all configurations")
         .long("log4rs-config")
         .short('c')
-        .hidden_short_help(true)
-        .takes_value(true),
-    )
-    .arg(
-      Arg::with_name("no-stderr")
+        .hide_short_help(true)
+        .action(ArgAction::Set),
+
+      Arg::new("no-stderr")
         .help("If set, do not print log to stderr")
         .long("no-stderr")
-        .hidden_short_help(true)
+        .hide_short_help(true)
+        .action(ArgAction::SetTrue)
         .short('n'),
-    )
-    .arg(
-      Arg::with_name("log-file")
+
+      Arg::new("log-file")
         .help("Log file path")
         .long("log-file")
         .short('f')
-        .default_value(Box::leak(Box::new(format!("/tmp/log/{}.log", name))))
-        .hidden_short_help(true)
-        .takes_value(true),
-    )
-    .arg(
-      Arg::with_name("log-json")
+        .default_value(default_log_file)
+        .hide_short_help(true)
+        .action(ArgAction::Set),
+
+      Arg::new("log-json")
         .help("Log json file path. Must end with .0.jsonlog, '0' will be incremented with log file size increase.")
         .long("log-json")
         .short('j')
-        .default_value(Box::leak(Box::new(format!("/tmp/log/{}.0.jsonlog", name))))
-        .hidden_short_help(true)
-        .takes_value(true),
-    )
-    .arg(
-      Arg::with_name("log-level")
+        .default_value(default_log_json_file)
+        .hide_short_help(true)
+        .action(ArgAction::Set),
+
+      Arg::new("log-level")
         .help("Minimum log level for both stderr and file")
-        .possible_values(["trace", "debug", "info", "warn", "error"])
+        .value_parser(["trace", "debug", "info", "warn", "error"])
         .long("log-level")
         .short('l')
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
         .default_value("debug"),
-    )
-    .arg(
-      Arg::with_name("log-level-stderr")
+
+      Arg::new("log-level-stderr")
         .help("Minimum log level for stderr")
-        .possible_values(["trace", "debug", "info", "warn", "error"])
+        .value_parser(["trace", "debug", "info", "warn", "error"])
         .long("log-level-stderr")
         .short('s')
-        .takes_value(true)
+        .action(ArgAction::Set)
         .default_value("debug"),
-    )
-    .arg(
-      Arg::with_name("log-level-file")
+
+      Arg::new("log-level-file")
         .help("Minimum log level for file")
-        .possible_values(["trace", "debug", "info", "warn", "error"])
+        .value_parser(["trace", "debug", "info", "warn", "error"])
         .long("log-level-file")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
         .default_value("info"),
-    )
-    .arg(
-      Arg::with_name("log-level-json")
+
+      Arg::new("log-level-json")
         .help("Minimum log level for json")
-        .possible_values(["trace", "debug", "info", "warn", "error"])
+        .value_parser(["trace", "debug", "info", "warn", "error"])
         .long("log-level-json")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
         .default_value("info"),
-    )
-    .arg(
-      Arg::with_name("log-file-size")
+
+      Arg::new("log-file-size")
         .help("Maximum log file size in bytes, any invalid values will default to 1MB")
         .long("log-file-size")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
+        .value_parser(value_parser!(u64))
         .default_value("1000000"),
-    )
-    .arg(
-      Arg::with_name("log-json-count")
+
+      Arg::new("log-json-count")
         .help("Maximum json log file count, any invalid values will default to 10")
         .long("log-file-count")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
+        .value_parser(value_parser!(u32))
         .default_value("10"),
-    )
-    .arg(
-      Arg::with_name("http-ip")
+
+      Arg::new("http-ip")
         .help("IP to bind to for http health and basic info display")
         .long("http-ip")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
         .default_value("0.0.0.0"),
-    )
-    .arg(
-      Arg::with_name("http-port")
+
+      Arg::new("http-port")
         .help("Port to bind to for http health and basic info display")
         .long("http-port")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
         .default_value("3000"),
-    )
-    .arg(
-      Arg::with_name("http-pool-size")
+
+      Arg::new("http-pool-size")
         .help("Number of threads to handle status HTTP requests.")
         .long("http-pool-size")
-        .takes_value(true)
-        .hidden_short_help(true)
+        .action(ArgAction::Set)
+        .hide_short_help(true)
+        .value_parser(value_parser!(usize))
         .default_value("3"),
-    )
-    .setting(AppSettings::StrictUtf8)
-    .setting(AppSettings::ColoredHelp)
+    ])
 }
 
-pub fn init_app(app: App) -> EggApp {
+pub fn init_app(app: Command) -> EggApp {
   debug!("Initializing app");
 
   let matches: ArgMatches = app.get_matches();

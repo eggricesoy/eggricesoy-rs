@@ -1,6 +1,6 @@
 [package]
 name = "eggricesoy"
-version = "1.2.1"
+version = "2.0.0"
 edition = "2018"
 authors = ["Nocoto Day <notcoding.today>"]
 description = "Helper library for eggricesoy Rust binaries"
@@ -11,7 +11,7 @@ homepage = "eggrice.soy"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.16", features = ["env"] }
-log4rs = "1.0.0"
-log = "0.4.14"
+clap = { version = "4.2.1", features = ["env"] }
+log4rs = "1.2.0"
+log = "0.4.17"
 threadpool = "1.8.1"

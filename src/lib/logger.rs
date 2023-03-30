@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use log::{debug, LevelFilter};
+use log::{trace, LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::append::rolling_file::policy::compound::roll::delete::DeleteRoller;
 use log4rs::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
@@ -11,7 +11,7 @@ use log4rs::encode::json::JsonEncoder;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-fn str_to_levelfilter(string: &str) -> Result<LevelFilter, String> {
+fn str_to_level_filter(string: &str) -> Result<LevelFilter, String> {
   match string {
     "trace" => Ok(LevelFilter::Trace),
     "debug" => Ok(LevelFilter::Debug),
@@ -28,7 +28,7 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
   let encoder_string = "{d} {h({l})} [{T}/{t}] {m}{n}";
   let mut msgs: Vec<String> = Vec::new();
 
-  if !matches.is_present("no-stderr") {
+  if !matches.get_flag("no-stderr") {
     let stderr = ConsoleAppender::builder()
       .target(Target::Stderr)
       .encoder(Box::new(PatternEncoder::new(encoder_string)))
@@ -36,26 +36,18 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
     config_builder = config_builder.appender(
       Appender::builder()
         .filter(Box::new(ThresholdFilter::new(
-          str_to_levelfilter(matches.value_of("log-level-stderr").unwrap()).unwrap(),
+          str_to_level_filter(matches.get_one::<String>("log-level-stderr").unwrap()).unwrap(),
         )))
         .build("stderr", Box::new(stderr)),
     );
     root_builder = root_builder.appender("stderr");
   }
 
-  match matches.value_of("log-json") {
+  match matches.get_one::<String>("log-json") {
     Some(first_file) => {
       let pattern = first_file.replace(".0.jsonlog", ".{}.jsonlog");
-      let file_size: u64 = matches
-        .value_of("log-file-size")
-        .unwrap()
-        .parse()
-        .unwrap_or(1000000);
-      let file_count: u32 = matches
-        .value_of("log-json-count")
-        .unwrap()
-        .parse()
-        .unwrap_or(10);
+      let file_size: u64 = *matches.get_one::<u64>("log-file-size").unwrap();
+      let file_count: u32 = *matches.get_one::<u32>("log-json-count").unwrap();
       let policy = CompoundPolicy::new(
         Box::new(SizeTrigger::new(file_size)),
         Box::new(
@@ -73,7 +65,7 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
           config_builder = config_builder.appender(
             Appender::builder()
               .filter(Box::new(ThresholdFilter::new(
-                str_to_levelfilter(matches.value_of("log-level-json").unwrap()).unwrap(),
+                str_to_level_filter(matches.get_one::<String>("log-level-json").unwrap()).unwrap(),
               )))
               .build("json", Box::new(file)),
           );
@@ -85,13 +77,9 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
     None => msgs.push(String::from("Not logging json file!")),
   }
 
-  match matches.value_of("log-file") {
+  match matches.get_one::<String>("log-file") {
     Some(path) => {
-      let file_size: u64 = matches
-        .value_of("log-file-size")
-        .unwrap()
-        .parse()
-        .unwrap_or(1000000);
+      let file_size: u64 = *matches.get_one::<u64>("log-file-size").unwrap();
       let policy = CompoundPolicy::new(
         Box::new(SizeTrigger::new(file_size)),
         Box::new(DeleteRoller::new()),
@@ -105,7 +93,7 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
           config_builder = config_builder.appender(
             Appender::builder()
               .filter(Box::new(ThresholdFilter::new(
-                str_to_levelfilter(matches.value_of("log-level-file").unwrap()).unwrap(),
+                str_to_level_filter(matches.get_one::<String>("log-level-file").unwrap()).unwrap(),
               )))
               .build("file", Box::new(file)),
           );
@@ -120,9 +108,12 @@ pub fn default_logger_config(matches: &ArgMatches) -> (Config, Vec<String>) {
 
   (
     config_builder
-      .build(root_builder.build(
-        str_to_levelfilter(matches.value_of("log-level").unwrap()).unwrap_or(LevelFilter::Debug),
-      ))
+      .build(
+        root_builder.build(
+          str_to_level_filter(matches.get_one::<String>("log-level").unwrap())
+            .unwrap_or(LevelFilter::Debug),
+        ),
+      )
       .unwrap(),
     msgs,
   )
@@ -132,7 +123,7 @@ pub fn init_logger(matches: &ArgMatches) {
   let mut parse_msg: Vec<String> = Vec::new();
   let mut log4rs_config: Option<Config> = None;
 
-  match matches.value_of("log4rs-config") {
+  match matches.get_one::<String>("log4rs-config") {
     Some(config_path) => match log4rs::config::load_config_file(config_path, Default::default()) {
       Ok(config) => {
         log4rs_config = Some(config);
@@ -159,7 +150,7 @@ pub fn init_logger(matches: &ArgMatches) {
   log4rs::init_config(log4rs_config.unwrap()).unwrap();
   for msg in parse_msg {
     if !msg.is_empty() {
-      debug!("{}", msg);
+      trace!("{}", msg);
     }
   }
 }
